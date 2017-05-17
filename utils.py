@@ -59,7 +59,7 @@ def deconv(batch_input, out_channels):
         conv = tf.nn.conv2d_transpose(batch_input, filter, [batch, in_height * 2, in_width * 2, out_channels], [1, 2, 2, 1], padding="SAME")
         return conv
 
-b(srgb):
+def rgb_to_lab(srgb):
     with tf.name_scope("rgb_to_lab"):
         srgb = check_image(srgb)
         srgb_pixels = tf.reshape(srgb, [-1, 3])
