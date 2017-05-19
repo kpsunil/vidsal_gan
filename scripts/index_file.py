@@ -6,7 +6,7 @@ import pickle
 lag = 3
 num_frames = 4
 
-file_dir = '../data/ftp.ivc.polytech.univ-nantes.fr/IRCCyN_IVC_Eyetracker_SD_2009_12/H264_Streams/'
+file_dir = '../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/ftp.ivc.polytech.univ-nantes.fr/IRCCyN_IVC_Eyetracker_SD_2009_12/H264_Streams/'
 
 files_list= [x for x in os.listdir(file) if x.endswith('.h5')]
 data_list = []
