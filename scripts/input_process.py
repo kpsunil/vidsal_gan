@@ -4,7 +4,7 @@ import h5py
 import cv2
 import multiprocessing
 
-video_dir ="../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/ftp.ivc.polytech.univ-nantes.fr/IRCCyN_IVC_Eyetracker_SD_2009_12/H264_Streams/"
+video_dir ="../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/savam/video_data/"
 
 def get_video_frames(filename):
     print ("Opening video!",video_dir+filename)
@@ -30,15 +30,14 @@ def get_video_frames(filename):
 
     print ("Frames chosen")
     print ("Length of video %d" % frames.shape[0])
-    with h5py.File(video_dir+filename[:-4]+'.h5', 'w') as hf:
-        hf.create_dataset("frames",  data=frames)
+    with h5py.File(video_dir++'video_data.h5', 'a') as hf:
+        hf.create_dataset(filename,  data=frames)
 
     return video_dir+filename
 
 
 
-video_list = [x for x in os.listdir(video_dir) if x.endswith('.mp4') and (x[:-3]+'h5') not in os.listdir(video_dir)]
+video_list = [x for x in os.listdir(video_dir) if x.endswith('.avi') ]
 print video_list
 p = multiprocessing.Pool(5)
-print p.map(get_video_frames,video_list)
-                                             
+print p.map(get_video_frames,video_list)                                            

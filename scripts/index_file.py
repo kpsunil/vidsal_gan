@@ -8,7 +8,7 @@ num_frames = 4
 
 file_dir = '../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/ftp.ivc.polytech.univ-nantes.fr/IRCCyN_IVC_Eyetracker_SD_2009_12/H264_Streams/'
 
-files_list= [x for x in os.listdir(file) if x.endswith('.h5')]
+files_list= [x for x in os.listdir(file) ]
 data_list = []
 for file in files_list:
     with h5py.File(file_dir+file,'r') as hf:
