@@ -25,16 +25,20 @@ with h5py.File(file_dir+'video_data.h5','r') as hf:
 	 
 
 	
-	index_list.append([])
         for f in range(data.shape[0]):
 	   
             
             if f<num_frames*lag-lag:
                 pass
 	    else:
-                index_list[v].append([])
+		
+                index_list.append([v])
+		#print f,v
                 for n in range (num_frames):
-                    index_list[v][f-num_frames*lag+lag].append(f-n*lag)
+		    #print (v,f-n*lag)
+                    index_list[len(index_list)-1].append(f-n*lag)
+		
+		
         v+=1
 progress.done()
 print "saving pickle"
