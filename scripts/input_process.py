@@ -21,7 +21,8 @@ def get_video_frames(filename):
         if frame is None :
             break
         frame = cv2.resize(frame, (224, 224)).astype(np.float32)
-	print i
+	frame = cv2.cvtColor( frame, cv2.COLOR_RGB2GRAY )
+	
         frames.append(np.asarray(frame))
         if ret == False:
             break
@@ -38,11 +39,7 @@ def get_video_frames(filename):
     return video_dir+filename
 
 
-c = [6, 11, 13, 22, 23, 26, 30, 35, 41]
-h = h5py.File(video_dir+'video_data.h5')
-video_list = [x for x in os.listdir(video_dir) if x.endswith('.avi') and x not in h.keys()]
-print [x[:3]for x in video_list]
-h.close()
+video_list = [x for x in os.listdir(video_dir) if x.endswith('.avi') ]
 progress = ProgressBar(len(video_list))
 
 p = multiprocessing.Pool(1)
