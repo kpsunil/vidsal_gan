@@ -10,7 +10,6 @@ import h5py
 from utils import *
 from model import *
 
-Examples = collections.namedtuple("Examples", "paths, inputs, targets, count, steps_per_epoch")
 Model = collections.namedtuple("Model", "outputs, predict_real, predict_fake, discrim_loss, discrim_grads_and_vars, gen_loss_GAN, gen_loss_L1, gen_grads_and_vars, train")
 
 data_dir = '/scratch/kvg245/vidsal_gan/vidsal_gan/data/savam/'
@@ -55,7 +54,7 @@ class batch_generator:
 	    maps = np.asarray([target[x] for x in data[1:]])
 	    input_batch.append(frames)
 	    target_batch.append(maps)
-	return {'input':np.asarray(input_batch),'target':np.asarray(target_batch)}
+	return {'input':tf.convert_to_tensor(np.asarray(input_batch)),'target':tf.conver_to_tensor(np.asarray(target_batch))}
 		
     def get_batch_vec(self):
 	"""Provides batch of data to process and keeps 
@@ -74,13 +73,20 @@ class batch_generator:
         return batch_dict
     
 def main():
+    
     if not os.path.exists(output_dir):
 	os.makedirs(output_dir)
-    print "here"
+    
     tf.set_random_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
     bg = batch_generator()
-    a = bg.get_batch_vec()
-    print a['input'].shape, a['target'].shape
+    examples = bg.get_batch_vec()
+    model = create_model()
+    saver = tf.train.Saver(max_to_keep=1)
+    sv = tf.train.Supervisor(logdir=output_dir, save_summaries_secs=0, saver=None)
+    with sv.managed_session() as sess:
+	start = time.time()
+	
+
 main()	
