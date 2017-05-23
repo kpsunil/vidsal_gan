@@ -17,6 +17,11 @@ import time
 import sys
 import re
 
+def shuffled(x):
+    import random
+    y = x[:]
+    random.shuffle(y)
+    return y
 
 class ProgressBar(object):
     DEFAULT = 'Progress: %(bar)s %(percent)3d%%'
