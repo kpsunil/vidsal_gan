@@ -30,6 +30,7 @@ class batch_generator:
     
     def __init__( self,batch_size = 8):
     	self.batch_size = batch_size
+	self.batch_len = 17991
 	self.index_data,self.target_data,self.input_data = self.open_files()
 	self.current_epoch = None
         self.batch_index = None
@@ -71,10 +72,10 @@ class batch_generator:
 	    self.batch_index = 0
 	    self.current_epoch = 0
 	batch_dict = self.create_batch(self.index_data[self.batch_index:self.batch_index + self.batch_size])
-        if self.batch_index < self.batch_size+self.batch_size-1:
+        if self.batch_index < self.batch_len+self.batch_size-1:
             self.batch_index += self.batch_size
         else:
-            self.num_epoch += 1
+            self.current_epoch += 1
             self.batch_index = 0
 
         return batch_dict
@@ -91,12 +92,63 @@ def main():
     
     #examples = bg.get_batch_vec()
     #print examples['input'].shape , examples['target'].shape
+    input = tf.placeholder(dtype = tf.float32,shape = (1,256,256,12))
+    target = tf.placeholder(dtype = tf.float32, shape = (1,256,256,1))
     examples = {'input':np.zeros((1,256,256,12)),'target':np.zeros((1,256,256,1))}
-    model = create_model(tf.convert_to_tensor(examples['input'],dtype = tf.float32),tf.convert_to_tensor(examples['target'],dtype=tf.float32))
+    model = create_model(input,target)
+    with tf.name_scope("predict_real_summary"):
+        tf.summary.image("predict_real", tf.image.convert_image_dtype(model.predict_real, dtype=tf.uint8))
+
+    with tf.name_scope("predict_fake_summary"):
+        tf.summary.image("predict_fake", tf.image.convert_image_dtype(model.predict_fake, dtype=tf.uint8))
+
+    tf.summary.scalar("discriminator_loss", model.discrim_loss)
+    tf.summary.scalar("generator_loss_GAN", model.gen_loss_GAN)
+    tf.summary.scalar("generator_loss_L1", model.gen_loss_L1)
+
+    for var in tf.trainable_variables():
+        tf.summary.histogram(var.op.name + "/values", var)
+
+    for grad, var in model.discrim_grads_and_vars + model.gen_grads_and_vars:
+        tf.summary.histogram(var.op.name + "/gradients", grad)
+
+    with tf.name_scope("parameter_count"):
+        parameter_count = tf.reduce_sum([tf.reduce_prod(tf.shape(v)) for v in tf.trainable_variables()])
+
     saver = tf.train.Saver(max_to_keep=1)
     sv = tf.train.Supervisor(logdir=output_dir, save_summaries_secs=0, saver=None)
     with sv.managed_session() as sess:
 	start = time.time()
+	while bg.current_epoch<max_epoch:
+	    c = bg.current_epoch
+	    progress = ProgressBar(bg.batch_len/bg.bathc_size,fmt = ProgressBar.FULL)
+	    while bg.current_epoch == c:
+		def should(freq):
+		    return freq > 0 and ((step + 1) % freq == 0 or step == max_steps - 1)
+		batch = bg.get_batch_vec()
+		fetches = {
+                    "train": model.train,
+                    "global_step": sv.global_step,
+			}
+
+		if should(a.summary_freq):
+		    fetches["summary"] = sv.summary_op
+
+		if should(progress_freq):
+                    fetches["discrim_loss"] = model.discrim_loss
+                    fetches["gen_loss_GAN"] = model.gen_loss_GAN
+		    fetches["gen_loss_L1"] = model.gen_loss_L1	
+		
+		
+		results = sess.run(fetches,feed_dict = batch)
+		print(results,bg.current_step,bg.atch_index)
+		progress.current+=1
+		progress()
+                if should(summary_freq):
+                    print("recording summary")
+                    sv.summary_writer.add_summary(results["summary"], results["global_step"])
+
+	    progress.done()
 	
 
 main()	
