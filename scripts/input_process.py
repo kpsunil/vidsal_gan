@@ -32,7 +32,7 @@ def get_video_frames(filename):
     
     print ("Frames chosen")
     print ("Length of video %d" % frames.shape[0])
-    with h5py.File(video_dir+'video_data.h5', 'a') as hf:
+    with h5py.File(video_dir+'target_data.h5', 'a') as hf:
         hf.create_dataset(filename,  data=frames)
     progress.current+=1
     progress()
