@@ -14,8 +14,8 @@ Model = collections.namedtuple("Model", "outputs, predict_real, predict_fake, di
 
 data_dir = '/scratch/kvg245/vidsal_gan/vidsal_gan/data/savam/'
 output_dir = '/scratch/kvg245/vidsal_gan/vidsal_gan/output/'
-input_file = 'gaussian_vizualizations/video_data.h5'
-target_file = 'video_data/video_data.h5'
+target_file = 'gaussian_vizualizations/target_data.h5'
+input_file = 'video_data/video_data.h5'
 index_file = 'video_data/indices'
 
 seed = 4
@@ -47,6 +47,7 @@ class batch_generator:
 	"""Creates and returns a batch of input and output data"""
 	input_batch = []
 	target_batch = []
+	progress  = ProgressBar(len(data_list),fmt=ProgressBar.FULL)
 	for data in data_list:
     	    video =  self.input_data[vid_dict[data[0]]][:]
 	    target = self.target_data[vid_dict[data[0]]][:]
@@ -54,7 +55,13 @@ class batch_generator:
 	    maps = np.asarray([target[x] for x in data[1:]])
 	    input_batch.append(frames)
 	    target_batch.append(maps)
-	return {'input':tf.convert_to_tensor(np.asarray(input_batch)),'target':tf.conver_to_tensor(np.asarray(target_batch))}
+	    progress.current+=1
+            progress()
+	progress.done()
+	target_batch = np.asarray(target_batch)
+	input_batch = np.asarray(input_batch)
+	print target_batch.shape
+	return {'input':input_batch.reshape(input_batch.shape[0],input_batch.shape[2],input_batch.shape[3],input_batch.shape[4]*input_batch.shape[1]),'target':np.reshape(target_batch,(target_batch.shape[0],target_batch.shape[1],target_batch.shape[2],target_batch.shape[3],1))}
 		
     def get_batch_vec(self):
 	"""Provides batch of data to process and keeps 
@@ -80,9 +87,12 @@ def main():
     tf.set_random_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    bg = batch_generator()
-    examples = bg.get_batch_vec()
-    model = create_model()
+    #bg = batch_generator(1)
+    
+    #examples = bg.get_batch_vec()
+    #print examples['input'].shape , examples['target'].shape
+    examples = {'input':np.zeros((1,256,256,12)),'target':np.zeros((1,256,256,1))}
+    model = create_model(tf.convert_to_tensor(examples['input'],dtype = tf.float32),tf.convert_to_tensor(examples['target'],dtype=tf.float32))
     saver = tf.train.Saver(max_to_keep=1)
     sv = tf.train.Supervisor(logdir=output_dir, save_summaries_secs=0, saver=None)
     with sv.managed_session() as sess:
