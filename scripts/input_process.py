@@ -4,7 +4,7 @@ import h5py
 import cv2
 import multiprocessing
 from utils import ProgressBar
-video_dir ="../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/savam/gaussian_vizualizations/"
+video_dir ="../../../../scratch/kvg245/vidsal_gan/vidsal_gan/data/savam/video_data/"
 
 def get_video_frames(filename):
     global progress
@@ -20,7 +20,7 @@ def get_video_frames(filename):
         ret, frame = capture.read()
         if frame is None :
             break
-        frame = cv2.resize(frame, (224, 224)).astype(np.float32)
+        frame = cv2.resize(frame, (256, 256)).astype(np.float32)
 	frame = cv2.cvtColor( frame, cv2.COLOR_RGB2GRAY )
 	
         frames.append(np.asarray(frame))
@@ -32,7 +32,7 @@ def get_video_frames(filename):
     
     print ("Frames chosen")
     print ("Length of video %d" % frames.shape[0])
-    with h5py.File(video_dir+'target_data.h5', 'a') as hf:
+    with h5py.File(video_dir+'input_data.h5', 'a') as hf:
         hf.create_dataset(filename,  data=frames)
     progress.current+=1
     progress()
