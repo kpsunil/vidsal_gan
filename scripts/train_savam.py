@@ -22,7 +22,7 @@ input_file = 'video_data/input_data.h5'
 index_file = 'video_data/indices'
 
 train =True
-ckpt = False
+ckpt = True
 max_epoch = 10
 seed = 4
 num_frames = 4
@@ -166,6 +166,14 @@ def main():
 	    while bg.current_epoch == 0 :
 		feed_dict = {input:batch['input'],target :batch['target']}
 		predictions = sess.run(outputs,feed_dict = feed_dict)
+		for i in range(batch_size):
+		    p = predictions[i,:,:,:]
+		    t = batch['target'][i,:,:,:]
+		    i = batch['input'][i,:,:,0:3]
+		    save_image(p,output_dir,'p'+str(bg.batch_index+i))
+                    save_image(t,output_dir,'t'+str(bg.batch_index+i))
+                    save_image(i,output_dir,'i'+str(bg.batch_index+i))
+			
 		
 
 	elif train:
