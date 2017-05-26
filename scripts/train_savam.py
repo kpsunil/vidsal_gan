@@ -21,6 +21,7 @@ target_file = 'gaussian_vizualizations/maps_data.h5'
 input_file = 'video_data/input_data.h5'
 index_file = 'video_data/indices'
 
+checkpoint = True
 max_epoch = 30
 seed = 4
 num_frames = 4
@@ -142,43 +143,47 @@ def main():
 
     saver = tf.train.Saver(max_to_keep=1)
     sv = tf.train.Supervisor(logdir=output_dir, save_summaries_secs=0, saver=None)
-    a=0
+
     with sv.managed_session() as sess:
-	start = time.time()
-	while bg.current_epoch<max_epoch:
-	    c = bg.current_epoch
-	    #progress = ProgressBar(bg.batch_len/bg.batch_size,fmt = ProgressBar.FULL)
-	    while bg.current_epoch == c:
-		def should(freq):
-		    return freq > 0 and ((bg.batch_index+ 1) % freq == 0 )
-		batch = bg.get_batch_vec()
-		feed_dict = {input:batch['input'],target :batch['target']}	
-		fetches = {
-                    "train": model.train,
-                    "global_step": sv.global_step,
-			}
+	
+        if checkpoint:
+            print("loading model from checkpoint")
+            checkpoint = tf.train.latest_checkpoint(output_dir)
+            saver.restore(sess, checkpoint)
+	if mode =='test':
+	    pass
 
-		if should(summary_freq):
-		    fetches["summary"] = sv.summary_op
+	elif mode == 'train':
+	    start = time.time()
+	    while bg.current_epoch<max_epoch:
+	        c = bg.current_epoch
+	        #progress = ProgressBar(bg.batch_len/bg.batch_size,fmt = ProgressBar.FULL)
+	        while bg.current_epoch == c:
+		    def should(freq):
+		        return freq > 0 and ((bg.batch_index+ 1) % freq == 0 )
+		    batch = bg.get_batch_vec()
+		    feed_dict = {input:batch['input'],target :batch['target']}	
+		    fetches = {
+                        "train": model.train,
+                        "global_step": sv.global_step,
+			    }
 
-		if should(progress_freq):
-                    fetches["discrim_loss"] = model.discrim_loss
-                    fetches["gen_loss_GAN"] = model.gen_loss_GAN
-		    fetches["gen_loss_L1"] = model.gen_loss_L1	
-		
-		
-		results = sess.run(fetches,feed_dict = feed_dict)
-		
-		print(results["discrim_loss"],results["gen_loss_GAN"],results['gen_loss_L1'],bg.current_epoch,bg.batch_index)
-		#a = results['gen_loss_L1']
-		#progress.current+=1
-		#progress()
-                if should(summary_freq):
-                    print("recording summary")
-                    sv.summary_writer.add_summary(results["summary"], bg.batch_index/bg.batch_size*(bg.current_epoch+1))
-                if should(save_freq):
-                    print("saving model")
-                    saver.save(sess, os.path.join(output_dir, "model"), global_step=sv.global_step)
+		    if should(summary_freq):
+		        fetches["summary"] = sv.summary_op
 
-	    #progress.done()
+		    if should(progress_freq):
+                        fetches["discrim_loss"] = model.discrim_loss
+                        fetches["gen_loss_GAN"] = model.gen_loss_GAN
+		        fetches["gen_loss_L1"] = model.gen_loss_L1	
+		
+		    results = sess.run(fetches,feed_dict = feed_dict)
+		
+		    print(results["discrim_loss"],results["gen_loss_GAN"],results['gen_loss_L1'],bg.current_epoch,bg.batch_index)
+                    if should(summary_freq):
+                        print("recording summary")
+                        sv.summary_writer.add_summary(results["summary"], bg.batch_index/bg.batch_size*(bg.current_epoch+1))
+                    if should(save_freq):
+                        print("saving model")
+                        saver.save(sess, os.path.join(output_dir, "model"), global_step=sv.global_step)
+
 main()
