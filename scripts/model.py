@@ -9,10 +9,10 @@ Examples = collections.namedtuple("Examples", "paths, inputs, targets, count, st
 Model = collections.namedtuple("Model", "outputs, predict_real, predict_fake, discrim_loss, discrim_grads_and_vars, gen_loss_GAN, gen_loss_L1, gen_grads_and_vars, train")
 
 EPS = 1e-12
-lr = 0.0002
+lr = 0.002
 beta1 = 0.5
-l1_weight = 100.0
-gan_weight = 1.0
+l1_weight = 10.0
+gan_weight = 0.0
 def create_generator(generator_inputs, generator_outputs_channels):
     layers = []
     ngf = 64 # number of generator filters
@@ -40,9 +40,9 @@ def create_generator(generator_inputs, generator_outputs_channels):
             layers.append(output)
 
     layer_specs = [
-        (ngf * 8, 0.5),   # decoder_8: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
-        (ngf * 8, 0.5),   # decoder_7: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
-        (ngf * 8, 0.5),   # decoder_6: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
+        (ngf * 8, 0.0),   # decoder_8: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+        (ngf * 8, 0.0),   # decoder_7: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
+        (ngf * 8, 0.0),   # decoder_6: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
         (ngf * 8, 0.0),   # decoder_5: [batch, 8, 8, ngf * 8 * 2] => [batch, 16, 16, ngf * 8 * 2]
         (ngf * 4, 0.0),   # decoder_4: [batch, 16, 16, ngf * 8 * 2] => [batch, 32, 32, ngf * 4 * 2]
         (ngf * 2, 0.0),   # decoder_3: [batch, 32, 32, ngf * 4 * 2] => [batch, 64, 64, ngf * 2 * 2]
@@ -76,6 +76,8 @@ def create_generator(generator_inputs, generator_outputs_channels):
         rectified = tf.nn.relu(input)
         output = deconv(rectified, generator_outputs_channels)
         output = tf.tanh(output)
+	output = conv11(output)
+	output = tf.nn.sigmoid(output)
         layers.append(output)
 
     return layers[-1]
@@ -83,8 +85,6 @@ def create_generator(generator_inputs, generator_outputs_channels):
 
 
 def create_model(inputs, targets):
-    gan_weight = 100
-    l1_weight = 1 
     def create_discriminator(discrim_inputs, discrim_targets):
         n_layers = 3
         layers = []
@@ -145,7 +145,7 @@ def create_model(inputs, targets):
         # predict_fake => 1
         # abs(targets - outputs) => 0
         gen_loss_GAN = tf.reduce_mean(-tf.log(predict_fake + EPS))
-        gen_loss_L1 = tf.reduce_mean(tf.abs(targets - outputs))
+	gen_loss_L1 = tf.reduce_mean(tf.square(targets - outputs))
         gen_loss = gen_loss_GAN * gan_weight + gen_loss_L1 * l1_weight
 
     with tf.name_scope("discriminator_train"):
@@ -157,12 +157,11 @@ def create_model(inputs, targets):
     with tf.name_scope("generator_train"):
         with tf.control_dependencies([discrim_train]):
             gen_tvars = [var for var in tf.trainable_variables() if var.name.startswith("generator")]
-            gen_optim = tf.train.AdamOptimizer(lr, beta1)
-            gen_grads_and_vars = gen_optim.compute_gradients(gen_loss, var_list=gen_tvars)
+            gen_optim = tf.train.AdamOptimizer(lr)
+            gen_grads_and_vars = gen_optim.compute_gradients(gen_loss_L1, var_list=gen_tvars)
             gen_train = gen_optim.apply_gradients(gen_grads_and_vars)
-
     ema = tf.train.ExponentialMovingAverage(decay=0.99)
-    update_losses = ema.apply([discrim_loss, gen_loss_GAN, gen_loss_L1])
+    update_losses = ema.apply([discrim_loss,gen_loss_GAN,gen_loss_L1])
 
     global_step = tf.contrib.framework.get_or_create_global_step()
     incr_global_step = tf.assign(global_step, global_step+1)
@@ -170,12 +169,12 @@ def create_model(inputs, targets):
     return Model(
         predict_real=predict_real,
         predict_fake=predict_fake,
-        discrim_loss=ema.average(discrim_loss),
+        discrim_loss=discrim_loss,
         discrim_grads_and_vars=discrim_grads_and_vars,
-        gen_loss_GAN=ema.average(gen_loss_GAN),
-        gen_loss_L1=ema.average(gen_loss_L1),
+        gen_loss_GAN=gen_loss,
+        gen_loss_L1=gen_loss_L1,
         gen_grads_and_vars=gen_grads_and_vars,
         outputs=outputs,
-        train=tf.group(update_losses, incr_global_step, gen_train),
+        train=tf.group(update_losses,incr_global_step, gen_train),
     )
 
