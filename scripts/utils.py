@@ -5,23 +5,31 @@ from __future__ import print_function
 
 import tensorflow as tf
 import numpy as np
-import argparse
+import scipy.misc
+
 import os
-import json
 import glob
 import random
 import collections
 import math
 import time
-
 import sys
 import re
+
+ 
 
 def shuffled(x):
     import random
     y = x[:]
     random.shuffle(y)
     return y
+
+
+def save_image (image,output_dir,filename):
+    import matplotlib
+    matplotlib.image.imsave(output_dir+filename, image)
+    return
+
 
 class ProgressBar(object):
     DEFAULT = 'Progress: %(bar)s %(percent)3d%%'
@@ -61,6 +69,8 @@ class ProgressBar(object):
         print('', file=self.output)
 
 def conv(batch_input, out_channels, stride):
+    """Convoluton with filter size 4 x 4 x in_channels x out_channels 
+	and padding valid"""
     with tf.variable_scope("conv"):
         in_channels = batch_input.get_shape()[3]
         filter = tf.get_variable("filter", [4, 4, in_channels, out_channels], dtype=tf.float32, initializer=tf.random_normal_initializer(0, 0.02))
@@ -71,6 +81,7 @@ def conv(batch_input, out_channels, stride):
         return conv
 
 def conv11(batch_input, stride=1):
+
     with tf.variable_scope("conv11"):
         in_channels = batch_input.get_shape()[3]
 	out_channels = in_channels
