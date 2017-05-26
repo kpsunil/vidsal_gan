@@ -98,7 +98,7 @@ class batch_generator:
 	track of current index and epoch"""
 	
         if self.batch_index is None:
-	    self.batch_index = 0  
+	    self.batch_index = 8000 
 	    self.current_epoch = 0
 	
         if self.batch_index < self.batch_len-self.batch_size-1:
@@ -128,6 +128,8 @@ def main():
     input = tf.placeholder(dtype = tf.float32,shape = (batch_size,256,256,12))
     target = tf.placeholder(dtype = tf.float32, shape = (batch_size,256,256,1))
     #examples = {'input':np.zeros((1,256,256,12)),'target':np.zeros((1,256,256,1))}
+     
+    
     model = create_model(input,target)
     with tf.name_scope("predict_real_summary"):
         tf.summary.image("predict_real", tf.image.convert_image_dtype(model.predict_real, dtype=tf.uint8))
@@ -147,17 +149,19 @@ def main():
 
     with tf.name_scope("parameter_count"):
         parameter_count = tf.reduce_sum([tf.reduce_prod(tf.shape(v)) for v in tf.trainable_variables()])
-
+    #if ckpt:                                                                
+    #	new_saver = tf.train.import_meta_graph(output_dir+'model.ckpt.meta')
     saver = tf.train.Saver()
-    if ckpt:
-    	new_saver = tf.train.import_meta_graph(output_dir+'model.ckpt.meta')
+    restore_saver = tf.train.Saver()    
+    
     sv = tf.train.Supervisor(logdir=output_dir, save_summaries_secs=0, saver=None)
 
     with sv.managed_session() as sess:
 		
         if ckpt:
             print("loading model from checkpoint")
-            new_saver.restore(sess, tf.train.latest_checkpoint('./'))
+            checkpoint = tf.train.latest_checkpoint(output_dir)
+	    restore_saver.restore(sess,checkpoint)
             
 	if not train:
 	    bg = batch_generator(batch_size)
